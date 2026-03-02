@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞马传说 - Pegasus Flight</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gold: #ffd700;
+            --spring-green: #4caf50;
+            --spring-light: #81c784;
+            --spring-cyan: #4dd0e1;
+            --flower-yellow: #ffeb3b;
+            --flower-orange: #ff9800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Cinzel', serif;
+            background: linear-gradient(180deg, #e0f7fa 0%, #b2ebf2 50%, #80deea 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: var(--star-white);
+            border-radius: 50%;
+            animation: twinkle 2s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        #game-canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .title {
+            font-family: 'Cinzel', serif;
+            font-size: 4rem;
+            color: #2e7d32;
+            text-shadow: 
+                0 0 10px #4caf50,
+                0 0 20px #81c784,
+                0 0 30px #a5d6a7;
+            margin-bottom: 1rem;
+            animation: titleGlow 2s infinite ease-in-out;
+            text-align: center;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px #4caf50, 0 0 20px #81c784, 0 0 30px #a5d6a7; }
+            50% { text-shadow: 0 0 20px #4caf50, 0 0 40px #81c784, 0 0 60px #a5d6a7; }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #388e3c;
+            margin-bottom: 3rem;
+            letter-spacing: 0.3em;
+        }
+
+        .pegasus-preview {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+            animation: fly 2s ease-in-out infinite;
+            filter: drop-shadow(0 0 20px #81c784);
+        }
+
+        @keyframes fly {
+            0%, 100% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .diff-btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-family: 'Noto Sans SC', serif;
+            border: 2px solid #4caf50;
+            background: rgba(76, 175, 80, 0.15);
+            color: #2e7d32;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .diff-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .diff-btn:hover::before {
+            left: 100%;
+        }
+
+        .diff-btn:hover, .diff-btn.active {
+            background: #4caf50;
+            color: white;
+            box-shadow: 0 0 20px #81c784;
+            transform: scale(1.05);
+        }
+
+        .diff-btn.easy { border-color: #66bb6a; }
+        .diff-btn.easy:hover, .diff-btn.easy.active { background: #66bb6a; box-shadow: 0 0 20px #a5d6a7; }
+        
+        .diff-btn.hard { border: 2px solid transparent; background: rgba(255, 167, 38, 0.15); color: #f57c00; }
+        .diff-btn.hard:hover, .diff-btn.hard.active { background: #ffa726; color: white; box-shadow: 0 0 20px #ffcc80; border-color: #ffa726; }
+        
+        .diff-btn.nightmare { border: 2px solid transparent; background: rgba(239, 83, 80, 0.15); color: #d32f2f; }
+        .diff-btn.nightmare:hover, .diff-btn.nightmare.active { background: #ef5350; color: white; box-shadow: 0 0 20px #ef9a9a; border-color: #ef5350; }
+
+        .start-btn {
+            padding: 1.2rem 3rem;
+            font-size: 1.5rem;
+            font-family: 'Cinzel', serif;
+            background: linear-gradient(135deg, #ffd700, #ffb300);
+            border: none;
+            color: #2e7d32;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px #ffd700;
+        }
+
+        .instructions {
+            margin-top: 2rem;
+            color: rgba(46, 125, 50, 0.8);
+            font-size: 0.9rem;
+        }
+
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Cinzel', serif;
+            font-size: 2.5rem;
+            color: #2e7d32;
+            text-shadow: 0 0 10px #81c784;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #score-display.visible {
+            opacity: 1;
+        }
+
+        .game-over-screen {
+            background: rgba(224, 247, 250, 0.95);
+        }
+
+        .result-title {
+            font-family: 'Cinzel', serif;
+            font-size: 3rem;
+            color: #e91e63;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px #f8bbd9;
+        }
+
+        .final-score {
+            font-size: 1.5rem;
+            color: #2e7d32;
+            margin-bottom: 0.5rem;
+        }
+
+        .score-number {
+            font-family: 'Cinzel', serif;
+            font-size: 5rem;
+            color: #ff9800;
+            text-shadow: 0 0 30px #ffcc80;
+            margin-bottom: 2rem;
+        }
+
+        .flowers-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .flower {
+            position: absolute;
+            font-size: 2rem;
+            animation: fall linear forwards;
+            opacity: 0;
+        }
+
+        @keyframes fall {
+            0% { 
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% { 
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0.8;
+            }
+        }
+
+        .share-container {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .share-btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border: 2px solid #4caf50;
+            background: transparent;
+            color: #2e7d32;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .share-btn:hover {
+            background: #4caf50;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .restart-btn {
+            margin-top: 2rem;
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            font-family: 'Cinzel', serif;
+            background: linear-gradient(135deg, #ff9800, #ff5722);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px #ff9800;
+        }
+
+        .hint-text {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(46, 125, 50, 0.6);
+            font-size: 1rem;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            .title { font-size: 2.5rem; }
+            .difficulty-selector { flex-direction: column; }
+            .diff-btn { padding: 0.8rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="stars" id="stars"></div>
+        
+        <div class="screen" id="start-screen">
+            <div class="pegasus-preview">🦄</div>
+            <h1 class="title">飞马传说</h1>
+            <p class="subtitle">PEGASUS FLIGHT</p>
+            
+            <div class="difficulty-selector">
+                <button class="diff-btn easy active" data-speed="3">简单</button>
+                <button class="diff-btn hard" data-speed="5">困难</button>
+                <button class="diff-btn nightmare" data-speed="8">噩梦</button>
+            </div>
+            
+            <button class="start-btn" id="start-btn">开始飞行</button>
+            <p class="instructions">点击屏幕或按空格键让飞马飞翔</p>
+        </div>
+
+        <div id="score-display">分数: 0</div>
+
+        <div class="screen hidden game-over-screen" id="game-over-screen">
+            <div class="flowers-container" id="flowers"></div>
+            <h2 class="result-title">游戏结束</h2>
+            <p class="final-score">你获得了</p>
+            <div class="score-number" id="final-score">0</div>
+            <p class="final-score">分</p>
+            
+            <div class="share-container">
+                <button class="share-btn" id="share-btn">
+                    <span>📤</span> 分享成绩
+                </button>
+            </div>
+            
+            <button class="restart-btn" id="restart-btn">再来一次</button>
+            <p class="hint-text">点击屏幕或按空格键继续</p>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const DIFFICULTY = {
+            easy: { speed: 2, gap: 220, pillarInterval: 2800 },
+            hard: { speed: 4, gap: 180, pillarInterval: 2200 },
+            nightmare: { speed: 6, gap: 150, pillarInterval: 1700 }
+        };
+
+        let gameState = 'start';
+        let score = 0;
+        let currentDifficulty = 'easy';
+        let gameSpeed = DIFFICULTY.easy.speed;
+        let pillars = [];
+        let lastPillarTime = 0;
+        let animationId;
+        let bgOffset = 0;
+        let clouds = [];
+
+        const pegasus = {
+            x: canvas.width / 4,
+            y: canvas.height / 2,
+            width: 70,
+            height: 55,
+            velocity: 0,
+            gravity: 0.25,
+            jump: -6,
+            rotation: 0,
+            wingPhase: 0
+        };
+
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            starsContainer.innerHTML = '';
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+            
+            clouds = [];
+            for (let i = 0; i < 8; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.7,
+                    size: 60 + Math.random() * 80,
+                    speed: 0.3 + Math.random() * 0.5,
+                    opacity: 0.08 + Math.random() * 0.06
+                });
+            }
+        }
+
+        function drawBackground() {
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGradient.addColorStop(0, '#e0f7fa');
+            bgGradient.addColorStop(0.3, '#b2ebf2');
+            bgGradient.addColorStop(0.6, '#80deea');
+            bgGradient.addColorStop(1, '#4dd0e1');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = 'rgba(0, 200, 100, 0.08)';
+            for (let i = 0; i < canvas.width; i += 40) {
+                ctx.fillRect(i, 0, 2, canvas.height);
+            }
+            for (let j = 0; j < canvas.height; j += 40) {
+                ctx.fillRect(0, j, canvas.width, 2);
+            }
+            
+            ctx.fillStyle = 'rgba(100, 200, 100, 0.2)';
+            for (let i = 0; i < 15; i++) {
+                const x = (i * 150 + Date.now() * 0.02) % (canvas.width + 100) - 50;
+                const y = Math.sin(i + Date.now() * 0.001) * 20 + canvas.height * 0.8;
+                ctx.beginPath();
+                ctx.ellipse(x, y, 8, 15, Math.PI / 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            clouds.forEach(cloud => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${cloud.opacity * 1.5})`;
+                ctx.beginPath();
+                ctx.arc(cloud.x, cloud.y, cloud.size * 0.5, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.4, cloud.y - cloud.size * 0.1, cloud.size * 0.4, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.8, cloud.y, cloud.size * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+                
+                cloud.x -= cloud.speed * (gameSpeed / 2);
+                if (cloud.x + cloud.size < 0) {
+                    cloud.x = canvas.width + cloud.size;
+                    cloud.y = Math.random() * canvas.height * 0.6;
+                }
+            });
+        }
+
+        function drawPegasus() {
+            ctx.save();
+            ctx.translate(pegasus.x, pegasus.y);
+            
+            ctx.font = '70px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.scale(-1, 1);
+            
+            // 添加阴影让马头更明显
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.fillText('🦄', 0, 0);
+            
+            ctx.restore();
+        }
+
+        function createPillar() {
+            const gap = DIFFICULTY[currentDifficulty].gap;
+            const minHeight = 80;
+            const maxHeight = canvas.height - gap - minHeight;
+            const topHeight = minHeight + Math.random() * (maxHeight - minHeight);
+            
+            const pillarWidth = 70;
+            
+            return {
+                x: canvas.width,
+                topHeight: topHeight,
+                gap: gap,
+                width: pillarWidth,
+                passed: false
+            };
+        }
+
+        function drawPillars() {
+            pillars.forEach(pillar => {
+                const gradient = ctx.createLinearGradient(pillar.x, 0, pillar.x + pillar.width, 0);
+                gradient.addColorStop(0, '#2e7d32');
+                gradient.addColorStop(0.3, '#4caf50');
+                gradient.addColorStop(0.5, '#66bb6a');
+                gradient.addColorStop(0.7, '#4caf50');
+                gradient.addColorStop(1, '#2e7d32');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(pillar.x, 0, pillar.width, pillar.topHeight);
+                
+                const bottomY = pillar.topHeight + pillar.gap;
+                ctx.fillRect(pillar.x, bottomY, pillar.width, canvas.height - bottomY);
+                
+                ctx.fillStyle = '#81c784';
+                ctx.fillRect(pillar.x + 5, 0, 8, pillar.topHeight);
+                ctx.fillRect(pillar.x + 5, bottomY, 8, canvas.height - bottomY);
+                
+                // 柱子上装饰鲜花 - 缠绕效果
+                const flowers = ['🌸', '🌺', '🌹', '🌷', '🌼', '🌻', '🌿', '🍃'];
+                ctx.font = '32px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // 上柱子 - 左中右三列鲜花缠绕
+                let flowerIdx = 0;
+                for (let i = 25; i < pillar.topHeight - 25; i += 45) {
+                    const offset = (i * 0.5) % 30;
+                    // 左侧鲜花
+                    ctx.fillText(flowers[flowerIdx % flowers.length], pillar.x + 15 + offset * 0.3, i);
+                    flowerIdx++;
+                    
+                    // 中间主鲜花
+                    ctx.fillText(flowers[flowerIdx % flowers.length], pillar.x + pillar.width/2, i + offset * 0.2);
+                    flowerIdx++;
+                    
+                    // 右侧鲜花
+                    ctx.fillText(flowers[flowerIdx % flowers.length], pillar.x + pillar.width - 15 - offset * 0.3, i);
+                    flowerIdx++;
+                }
+                
+                // 下柱子 - 左中右三列鲜花缠绕
+                for (let i = bottomY + 25; i < canvas.height - 25; i += 45) {
+                    const offset = (i * 0.5) % 30;
+                    // 左侧鲜花
+                    ctx.fillText(flowers[flowerIdx % flowers.length], pillar.x + 15 + offset * 0.3, i);
+                    flowerIdx++;
+                    
+                    // 中间主鲜花
+                    ctx.fillText(flowers[flowerIdx % flowers.length], pillar.x + pillar.width/2, i + offset * 0.2);
+                    flowerIdx++;
+                    
+                    // 右侧鲜花
+                    ctx.fillText(flowers[flowerIdx % flowers.length], pillar.x + pillar.width - 15 - offset * 0.3, i);
+                    flowerIdx++;
+                }
+            });
+        }
+
+        function checkCollision() {
+            const pegasusLeft = pegasus.x - 22;
+            const pegasusRight = pegasus.x + 24;
+            const pegasusTop = pegasus.y - 22;
+            const pegasusBottom = pegasus.y + 23;
+
+            if (pegasusTop < 0 || pegasusBottom > canvas.height) {
+                return true;
+            }
+
+            for (const pillar of pillars) {
+                const pillarLeft = pillar.x;
+                const pillarRight = pillar.x + pillar.width;
+                const topPillarBottom = pillar.topHeight;
+                const bottomPillarTop = pillar.topHeight + pillar.gap;
+
+                if (pegasusRight > pillarLeft && pegasusLeft < pillarRight) {
+                    if (pegasusTop < topPillarBottom || pegasusBottom > bottomPillarTop) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function update() {
+            pegasus.velocity += pegasus.gravity;
+            pegasus.y += pegasus.velocity;
+            
+            pegasus.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, pegasus.velocity * 0.1));
+            pegasus.wingPhase += 0.3;
+
+            const now = Date.now();
+            const interval = DIFFICULTY[currentDifficulty].pillarInterval;
+            if (now - lastPillarTime > interval) {
+                pillars.push(createPillar());
+                lastPillarTime = now;
+            }
+
+            pillars.forEach(pillar => {
+                pillar.x -= gameSpeed;
+                
+                if (!pillar.passed && pillar.x + pillar.width < pegasus.x) {
+                    pillar.passed = true;
+                    score++;
+                    document.getElementById('score-display').textContent = '分数: ' + score;
+                }
+            });
+
+            pillars = pillars.filter(pillar => pillar.x + pillar.width > -50);
+
+            if (checkCollision()) {
+                gameOver();
+                return;
+            }
+
+            draw();
+            animationId = requestAnimationFrame(update);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawBackground();
+            
+            drawPillars();
+            drawPegasus();
+        }
+
+        function jump() {
+            pegasus.velocity = pegasus.jump;
+        }
+
+        function startGame() {
+            gameState = 'playing';
+            score = 0;
+            pillars = [];
+            pegasus.x = canvas.width / 4;
+            pegasus.y = canvas.height / 2;
+            pegasus.velocity = 0;
+            pegasus.rotation = 0;
+            lastPillarTime = Date.now() - 2000;
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('score-display').textContent = '分数: 0';
+            document.getElementById('score-display').classList.add('visible');
+            
+            gameSpeed = DIFFICULTY[currentDifficulty].speed;
+            
+            update();
+        }
+
+        function gameOver() {
+            gameState = 'gameover';
+            cancelAnimationFrame(animationId);
+            
+            document.getElementById('score-display').classList.remove('visible');
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            
+            createFlowers();
+        }
+
+        function createFlowers() {
+            const flowersContainer = document.getElementById('flowers');
+            flowersContainer.innerHTML = '';
+            
+            const flowers = ['🌸', '🌺', '🌹', '🌷', '💐', '✨', '⭐', '💫'];
+            
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const flower = document.createElement('div');
+                    flower.className = 'flower';
+                    flower.textContent = flowers[Math.floor(Math.random() * flowers.length)];
+                    flower.style.left = Math.random() * 100 + '%';
+                    flower.style.animationDuration = (2 + Math.random() * 2) + 's';
+                    flowersContainer.appendChild(flower);
+                    
+                    setTimeout(() => flower.remove(), 4000);
+                }, i * 100);
+            }
+        }
+
+        function shareScore() {
+            // 创建分享图片
+            const shareCanvas = document.createElement('canvas');
+            shareCanvas.width = 800;
+            shareCanvas.height = 600;
+            const sCtx = shareCanvas.getContext('2d');
+            
+            // 背景渐变
+            const bgGradient = sCtx.createLinearGradient(0, 0, 0, 600);
+            bgGradient.addColorStop(0, '#1a0a2e');
+            bgGradient.addColorStop(0.5, '#2d1b4e');
+            bgGradient.addColorStop(1, '#0d0d2b');
+            sCtx.fillStyle = bgGradient;
+            sCtx.fillRect(0, 0, 800, 600);
+            
+            // 星星装饰
+            sCtx.fillStyle = '#fff';
+            for (let i = 0; i < 50; i++) {
+                const x = Math.random() * 800;
+                const y = Math.random() * 600;
+                const size = Math.random() * 2 + 1;
+                sCtx.globalAlpha = Math.random() * 0.5 + 0.3;
+                sCtx.beginPath();
+                sCtx.arc(x, y, size, 0, Math.PI * 2);
+                sCtx.fill();
+            }
+            sCtx.globalAlpha = 1;
+            
+            // 标题
+            sCtx.fillStyle = '#ffd700';
+            sCtx.shadowColor = '#ffd700';
+            sCtx.shadowBlur = 20;
+            sCtx.font = 'bold 60px Cinzel, serif';
+            sCtx.textAlign = 'center';
+            sCtx.fillText('飞马传说', 400, 100);
+            sCtx.shadowBlur = 0;
+            
+            // 副标题
+            sCtx.fillStyle = '#4a90d9';
+            sCtx.font = '24px "Noto Sans SC", sans-serif';
+            sCtx.fillText('PEGASUS FLIGHT', 400, 140);
+            
+            // 飞马图标（简化版）
+            sCtx.save();
+            sCtx.translate(400, 280);
+            sCtx.scale(1.5, 1.5);
+            
+            // 身体
+            sCtx.fillStyle = '#2d1b4e';
+            sCtx.beginPath();
+            sCtx.ellipse(0, 0, 40, 25, 0, 0, Math.PI * 2);
+            sCtx.fill();
+            
+            // 翅膀
+            const wingGradient = sCtx.createLinearGradient(-50, -50, 20, 20);
+            wingGradient.addColorStop(0, 'rgba(0, 150, 255, 0.9)');
+            wingGradient.addColorStop(0.5, 'rgba(150, 210, 255, 0.8)');
+            wingGradient.addColorStop(1, 'rgba(0, 100, 200, 0.7)');
+            sCtx.fillStyle = wingGradient;
+            sCtx.shadowColor = '#00bfff';
+            sCtx.shadowBlur = 15;
+            
+            sCtx.beginPath();
+            sCtx.moveTo(-5, -20);
+            sCtx.quadraticCurveTo(-30, -70, -60, -50);
+            sCtx.quadraticCurveTo(-40, -30, -5, -20);
+            sCtx.fill();
+            
+            sCtx.beginPath();
+            sCtx.moveTo(5, -22);
+            sCtx.quadraticCurveTo(30, -75, 55, -55);
+            sCtx.quadraticCurveTo(35, -32, 5, -22);
+            sCtx.fill();
+            sCtx.shadowBlur = 0;
+            
+            // 独角
+            sCtx.fillStyle = '#ffd700';
+            sCtx.shadowColor = '#ffd700';
+            sCtx.shadowBlur = 10;
+            sCtx.beginPath();
+            sCtx.moveTo(55, -55);
+            sCtx.lineTo(58, -75);
+            sCtx.lineTo(61, -55);
+            sCtx.closePath();
+            sCtx.fill();
+            sCtx.restore();
+            
+            // 成绩框
+            sCtx.fillStyle = 'rgba(255, 215, 0, 0.1)';
+            sCtx.strokeStyle = '#ffd700';
+            sCtx.lineWidth = 3;
+            sCtx.beginPath();
+            sCtx.moveTo(270, 380);
+            sCtx.lineTo(530, 380);
+            sCtx.quadraticCurveTo(550, 380, 550, 400);
+            sCtx.lineTo(550, 510);
+            sCtx.quadraticCurveTo(550, 530, 530, 530);
+            sCtx.lineTo(270, 530);
+            sCtx.quadraticCurveTo(250, 530, 250, 510);
+            sCtx.lineTo(250, 400);
+            sCtx.quadraticCurveTo(250, 380, 270, 380);
+            sCtx.closePath();
+            sCtx.fill();
+            sCtx.stroke();
+            
+            // 分数标签
+            sCtx.fillStyle = '#fff';
+            sCtx.font = '28px "Noto Sans SC", sans-serif';
+            sCtx.fillText('最终得分', 400, 430);
+            
+            // 分数
+            sCtx.fillStyle = '#ffd700';
+            sCtx.shadowColor = '#ffd700';
+            sCtx.shadowBlur = 20;
+            sCtx.font = 'bold 72px Cinzel, serif';
+            sCtx.fillText(score.toString(), 400, 490);
+            sCtx.shadowBlur = 0;
+            
+            // 难度
+            const diffText = currentDifficulty === 'easy' ? '简单模式' : currentDifficulty === 'hard' ? '困难模式' : '噩梦模式';
+            sCtx.fillStyle = '#ff6b9d';
+            sCtx.font = '22px "Noto Sans SC", sans-serif';
+            sCtx.fillText(diffText, 400, 520);
+            
+            // 底部文字
+            sCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            sCtx.font = '18px "Noto Sans SC", sans-serif';
+            sCtx.fillText('一起来挑战飞马传说吧！', 400, 570);
+            
+            // 转换为图片并下载
+            shareCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `飞马传说_成绩${score}分.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentDifficulty = btn.dataset.speed === '3' ? 'easy' : btn.dataset.speed === '5' ? 'hard' : 'nightmare';
+            });
+        });
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        });
+        document.getElementById('share-btn').addEventListener('click', shareScore);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (gameState === 'playing') {
+                    jump();
+                } else if (gameState === 'start') {
+                    startGame();
+                } else if (gameState === 'gameover') {
+                    startGame();
+                }
+            }
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameState === 'playing') {
+                jump();
+            }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameState === 'playing') {
+                jump();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (gameState === 'start') {
+                draw();
+            }
+        });
+
+        createStars();
+        draw();
+    </script>
+</body>
+</html>
