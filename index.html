@@ -323,6 +323,28 @@
             50% { opacity: 1; }
         }
 
+        #countdown-screen {
+            background: rgba(224, 247, 250, 0.9);
+            z-index: 15;
+        }
+
+        .countdown-number {
+            font-family: 'Cinzel', serif;
+            font-size: 12rem;
+            color: #ff9800;
+            text-shadow: 
+                0 0 20px #ffcc80,
+                0 0 40px #ff9800,
+                0 0 60px #ff5722;
+            animation: countdownPulse 1s ease-in-out;
+        }
+
+        @keyframes countdownPulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
         @media (max-width: 600px) {
             .title { font-size: 2.5rem; }
             .difficulty-selector { flex-direction: column; }
@@ -350,6 +372,10 @@
         </div>
 
         <div id="score-display">分数: 0</div>
+
+        <div class="screen hidden" id="countdown-screen">
+            <div class="countdown-number" id="countdown-number">3</div>
+        </div>
 
         <div class="screen hidden game-over-screen" id="game-over-screen">
             <div class="flowers-container" id="flowers"></div>
@@ -483,11 +509,11 @@
             ctx.textBaseline = 'middle';
             ctx.scale(-1, 1);
             
-            // 添加阴影让马头更明显
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 3;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
+            // 添加明显的阴影让马头更清晰
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
             
             ctx.fillText('🦄', 0, 0);
             
@@ -645,7 +671,10 @@
         }
 
         function startGame() {
-            gameState = 'playing';
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            
+            // 初始化游戏状态
             score = 0;
             pillars = [];
             pegasus.x = canvas.width / 4;
@@ -653,15 +682,38 @@
             pegasus.velocity = 0;
             pegasus.rotation = 0;
             lastPillarTime = Date.now() - 2000;
-            
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('game-over-screen').classList.add('hidden');
-            document.getElementById('score-display').textContent = '分数: 0';
-            document.getElementById('score-display').classList.add('visible');
-            
             gameSpeed = DIFFICULTY[currentDifficulty].speed;
             
-            update();
+            // 显示倒计时
+            const countdownScreen = document.getElementById('countdown-screen');
+            const countdownNumber = document.getElementById('countdown-number');
+            countdownScreen.classList.remove('hidden');
+            
+            // 绘制初始画面（显示马头和背景）
+            draw();
+            
+            let count = 3;
+            countdownNumber.textContent = count;
+            
+            const countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownNumber.textContent = count;
+                    // 重新触发动画
+                    countdownNumber.style.animation = 'none';
+                    countdownNumber.offsetHeight; // 强制重绘
+                    countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
+                    // 持续绘制以保持马头显示
+                    draw();
+                } else {
+                    clearInterval(countdownInterval);
+                    countdownScreen.classList.add('hidden');
+                    document.getElementById('score-display').textContent = '分数: 0';
+                    document.getElementById('score-display').classList.add('visible');
+                    gameState = 'playing';
+                    update();
+                }
+            }, 1000);
         }
 
         function gameOver() {
